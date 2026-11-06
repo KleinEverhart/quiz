@@ -2,7 +2,7 @@
     'use strict';
 
     /* ================= CẤU HÌNH ================= */
-    // Có thể ghi đè qua URL, ví dụ: quiz.html?time=20&shuffle=0
+    // timePerQuestion do server cấp (xem /api/questions). Tắt xáo trộn để debug: quiz.html?shuffle=0
     const CONFIG = {
         timePerQuestion: 15,   // giây cho mỗi câu
         warningAt: 5,          // cảnh báo khi còn <= số giây này
@@ -37,8 +37,6 @@
 
     function applyUrlOverrides() {
         const p = new URLSearchParams(location.search);
-        const time = Number(p.get('time'));
-        if (Number.isInteger(time) && time >= 3 && time <= 300) CONFIG.timePerQuestion = time;
         if (p.get('shuffle') === '0') CONFIG.shuffleQuestions = CONFIG.shuffleAnswers = false;
     }
 
@@ -360,7 +358,9 @@
         el.btnStart.disabled = true;
         el.startInfo.textContent = 'Đang tải câu hỏi...';
         try {
-            validQuestions = getValidQuestions(await api('/api/questions'));
+            const data = await api('/api/questions');
+            if (Number.isInteger(data.timePerQuestion) && data.timePerQuestion > 0) CONFIG.timePerQuestion = data.timePerQuestion;
+            validQuestions = getValidQuestions(data.questions);
         } catch { validQuestions = []; }
 
         if (validQuestions.length === 0) {

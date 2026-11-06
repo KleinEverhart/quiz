@@ -2,6 +2,29 @@
   "name": "quiz-triet-hoc",
   "version": "1.0.0",
   "private": true,
-  "scripts": { "start": "node server.js" },
-  "dependencies": { "cors": "^2.8.5", "express": "^4.19.2" }
+  "description": "Website trắc nghiệm học thuyết hình thái Kinh tế - Xã hội (HTML/CSS/JS thuần + Node.js/Express).",
+  "keywords": [
+    "quiz",
+    "nodejs"
+  ],
+  "homepage": "https://github.com/KleinEverhart/quiz#readme",
+  "bugs": {
+    "url": "https://github.com/KleinEverhart/quiz/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KleinEverhart/quiz.git"
+  },
+  "license": "ISC",
+  "author": "Nguyen Nhat Khoi",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {}
 }
