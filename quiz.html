@@ -19,7 +19,7 @@
         <header class="header">
             <div class="grid grid__row header-layout">
                 <p class="header-info" id="player-info" hidden>
-                    👤 Người chơi: <span id="display-name" class="highlight-text"></span>
+                    👤 bạn: <span id="display-name" class="highlight-text"></span>
                 </p>
                 <p class="header-score" id="score-board" hidden>
                     Điểm: <span id="score" class="highlight-text">0</span>
@@ -75,7 +75,11 @@
                     <div><dt>Hết giờ</dt><dd id="stat-timeout">0</dd></div>
                     <div><dt>Tỉ lệ đúng</dt><dd id="stat-accuracy">0%</dd></div>
                 </dl>
-                <button type="button" id="btn-restart" class="btn">Làm lại từ đầu</button>
+                <p id="rank-text" class="rank-text"></p>
+                <p id="save-note" class="muted" role="status"></p>
+                <h3 class="board-title">Bảng xếp hạng</h3>
+                <ol id="leaderboard" class="leaderboard" aria-label="Bảng xếp hạng"></ol>
+                <p class="muted">Bài thi chỉ được làm một lần duy nhất.</p>
             </section>
         </main>
 

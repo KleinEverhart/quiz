@@ -11,39 +11,23 @@
         shuffleAnswers: true,
     };
 
-    /* ================= DỮ LIỆU CÂU HỎI (giữ nguyên) ================= */
-    const RAW_QUESTIONS = [
-        {
-            question: "ai đẹp trai nhất",
-            answers: [
-                "A. tao",
-                "B. tao",
-                "C. tao",
-                "D. tao"
-            ],
-            correct: 0
-        },
-        {
-            question: "ai đẹp trai nhất",
-            answers: [
-                "A. tao",
-                "B. tao",
-                "C. tao",
-                "D. tao"
-            ],
-            correct: 0
-        },
-        {
-            question: "ai đẹp trai nhất",
-            answers: [
-                "A. tao",
-                "B. tao",
-                "C. tao",
-                "D. tao"
-            ],
-            correct: 0
-        }
-    ];
+    /* ================= API & LƯU TRỮ ================= */
+    // Mở trực tiếp file HTML (file://) vẫn gọi được server tại localhost:3000
+    const API_BASE = location.protocol === 'file:' ? 'http://localhost:3000' : '';
+    const STORAGE_KEY = 'quiz-attempt-v1';
+
+    async function api(path, options = {}) {
+        const res = await fetch(API_BASE + path, { headers: { 'Content-Type': 'application/json' }, ...options });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw Object.assign(new Error(data.message || 'Lỗi máy chủ'), { status: res.status });
+        return data;
+    }
+
+    // Bản lưu cục bộ để khôi phục màn hình kết quả khi tải lại trang
+    const attemptStore = {
+        read() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return null; } },
+        write(data) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* bỏ qua */ } },
+    };
 
     const ANSWER_COUNT = 4;
     const LETTERS = ['A', 'B', 'C', 'D'];
@@ -104,7 +88,7 @@
     const el = {
         startScreen: $('start-screen'), quizScreen: $('quiz-screen'), resultScreen: $('result-screen'),
         startInfo: $('start-info'), nameInput: $('player-name'), nameError: $('name-error'),
-        btnStart: $('btn-start'), btnRestart: $('btn-restart'),
+        btnStart: $('btn-start'),
         playerInfo: $('player-info'), scoreBoard: $('score-board'),
         displayName: $('display-name'), score: $('score'),
         questionText: $('question-text'), answerBtns: [...document.querySelectorAll('.answer-btn')],
@@ -114,6 +98,7 @@
         finalName: $('final-name'), finalScore: $('final-score'),
         statCorrect: $('stat-correct'), statWrong: $('stat-wrong'),
         statTimeout: $('stat-timeout'), statAccuracy: $('stat-accuracy'),
+        rankText: $('rank-text'), saveNote: $('save-note'), leaderboard: $('leaderboard'),
     };
 
     function showScreen(screen) {
@@ -121,7 +106,7 @@
     }
 
     /* ================= TRẠNG THÁI ================= */
-    const validQuestions = getValidQuestions(RAW_QUESTIONS);
+    let validQuestions = [];
     const state = {
         playerName: '', session: [], index: 0, score: 0,
         correct: 0, wrong: 0, timedOut: 0,
@@ -250,26 +235,92 @@
         loadQuestion();
     }
 
+    function renderResult(r) {
+        el.finalName.textContent = r.name;
+        el.finalScore.textContent = r.score;
+        el.statCorrect.textContent = `${r.correct}/${r.total}`;
+        el.statWrong.textContent = r.wrong;
+        el.statTimeout.textContent = r.timedOut;
+        el.statAccuracy.textContent = `${r.accuracy}%`;
+        showScreen(el.resultScreen);
+    }
+
+    function renderBoard(data) {
+        el.rankText.textContent = data.rank ? `Xếp hạng của bạn: #${data.rank}/${data.total}` : '';
+        el.leaderboard.replaceChildren(...data.leaderboard.map((row) => {
+            const li = document.createElement('li');
+            const name = document.createElement('span');
+            const score = document.createElement('strong');
+            name.textContent = row.name;
+            score.textContent = row.score;
+            li.append(name, score);
+            if (row.name.toLowerCase() === state.playerName.toLowerCase()) li.className = 'me';
+            return li;
+        }));
+    }
+
+    async function loadBoard() {
+        try {
+            renderBoard(await api(`/api/leaderboard?name=${encodeURIComponent(state.playerName)}`));
+        } catch { el.saveNote.textContent = 'Không tải được bảng xếp hạng.'; }
+    }
+
+    async function submitResult(result) {
+        el.saveNote.textContent = 'Đang lưu điểm...';
+        try {
+            const data = await api('/api/score', {
+                method: 'POST',
+                body: JSON.stringify({ name: result.name, score: result.score, correct: result.correct, total: result.total }),
+            });
+            attemptStore.write({ ...result, submitted: true });
+            el.saveNote.textContent = '';
+            renderBoard(data);
+        } catch (err) {
+            if (err.status === 409) { // điểm đã được ghi trước đó
+                attemptStore.write({ ...result, submitted: true });
+                el.saveNote.textContent = '';
+                loadBoard();
+            } else {
+                el.saveNote.textContent = 'Chưa lưu được điểm lên máy chủ. Hãy tải lại trang để thử lại.';
+            }
+        }
+    }
+
     function showResult() {
         stopTimer();
         const total = state.session.length;
-        el.finalName.textContent = state.playerName;
-        el.finalScore.textContent = state.score;
-        el.statCorrect.textContent = `${state.correct}/${total}`;
-        el.statWrong.textContent = state.wrong;
-        el.statTimeout.textContent = state.timedOut;
-        el.statAccuracy.textContent = `${Math.round((state.correct / total) * 100)}%`;
-        showScreen(el.resultScreen);
-        el.btnRestart.focus();
+        const result = {
+            status: 'finished', name: state.playerName, score: state.score,
+            correct: state.correct, wrong: state.wrong, timedOut: state.timedOut,
+            total, accuracy: Math.round((state.correct / total) * 100), submitted: false,
+        };
+        attemptStore.write(result);
+        renderResult(result);
+        submitResult(result);
     }
 
-    function handleStart() {
-        const name = el.nameInput.value.trim();
+    function showStartError(msg) {
+        el.nameError.textContent = msg;
+        el.nameError.hidden = false;
+    }
+
+    async function handleStart() {
+        if (el.btnStart.disabled) return;
+        const name = el.nameInput.value.trim().replace(/\s+/g, ' ');
         if (!name) {
-            el.nameError.textContent = 'Vui lòng nhập tên của bạn để bắt đầu bài thi.';
-            el.nameError.hidden = false;
+            showStartError('Vui lòng nhập tên của bạn để bắt đầu bài thi.');
             el.nameInput.setAttribute('aria-invalid', 'true');
             el.nameInput.focus();
+            return;
+        }
+        el.btnStart.disabled = true;
+        try {
+            await api('/api/start', { method: 'POST', body: JSON.stringify({ name }) });
+        } catch (err) {
+            showStartError(err.status === 409
+                ? 'Tên này đã làm bài. Mỗi người chỉ được làm một lần.'
+                : 'Không kết nối được máy chủ. Vui lòng thử lại.');
+            el.btnStart.disabled = false;
             return;
         }
         el.nameError.hidden = true;
@@ -278,43 +329,62 @@
         el.displayName.textContent = name;
         el.playerInfo.hidden = false;
         el.scoreBoard.hidden = false;
-        startQuiz();
-    }
-
-    function handleRestart() {
+        attemptStore.write({ status: 'started', name });
         startQuiz();
     }
 
     /* ================= KHỞI TẠO ================= */
-    function init() {
+    async function init() {
         applyUrlOverrides();
 
-        if (validQuestions.length === 0) {
-            el.nameError.textContent = 'Không có dữ liệu câu hỏi hợp lệ. Vui lòng kiểm tra quiz.js.';
-            el.nameError.hidden = false;
-            el.btnStart.disabled = true;
-            el.nameInput.disabled = true;
-            showScreen(el.startScreen);
+        const saved = attemptStore.read();
+        if (saved && (saved.status === 'finished' || saved.status === 'started')) {
+            state.playerName = saved.name || '';
+            el.displayName.textContent = state.playerName;
+            el.playerInfo.hidden = false;
+            if (saved.status === 'finished') {
+                el.score.textContent = saved.score;
+                el.scoreBoard.hidden = false;
+                renderResult(saved);
+                saved.submitted ? loadBoard() : submitResult(saved);
+            } else {
+                el.nameInput.value = state.playerName;
+                el.nameInput.disabled = el.btnStart.disabled = true;
+                showStartError('Bạn đã bắt đầu bài thi trước đó. Mỗi người chỉ được làm một lần.');
+                showScreen(el.startScreen);
+            }
             return;
         }
 
+        showScreen(el.startScreen);
+        el.btnStart.disabled = true;
+        el.startInfo.textContent = 'Đang tải câu hỏi...';
+        try {
+            validQuestions = getValidQuestions(await api('/api/questions'));
+        } catch { validQuestions = []; }
+
+        if (validQuestions.length === 0) {
+            el.startInfo.textContent = '';
+            showStartError('Không tải được câu hỏi từ máy chủ. Hãy kiểm tra server rồi tải lại trang.');
+            el.nameInput.disabled = true;
+            return;
+        }
+
+        el.btnStart.disabled = false;
         el.startInfo.textContent =
-            `${validQuestions.length} câu hỏi · ${CONFIG.timePerQuestion} giây mỗi câu · điểm = số giây còn lại khi trả lời đúng`;
+            `${validQuestions.length} câu hỏi · ${CONFIG.timePerQuestion} giây mỗi câu · điểm = số giây còn lại khi trả lời đúng · chỉ làm một lần`;
 
         el.btnStart.addEventListener('click', handleStart);
         el.nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleStart(); });
-        el.btnRestart.addEventListener('click', handleRestart);
         el.answerBtns.forEach((btn) =>
             btn.addEventListener('click', () => handleAnswer(Number(btn.dataset.index))));
 
         // Phím tắt: 1-4 hoặc A-D để chọn đáp án
         document.addEventListener('keydown', (e) => {
-            if (el.quizScreen.hidden || state.locked || e.ctrlKey || e.metaKey || e.altKey) return;
-            const idx = '1234'.indexOf(e.key) !== -1 && e.key !== '' ? '1234'.indexOf(e.key) : 'abcd'.indexOf(e.key.toLowerCase());
-            if (idx >= 0 && e.key.length === 1) handleAnswer(idx);
+            if (el.quizScreen.hidden || state.locked || e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return;
+            const idx = '1234'.includes(e.key) ? '1234'.indexOf(e.key) : 'abcd'.indexOf(e.key.toLowerCase());
+            if (idx >= 0) handleAnswer(idx);
         });
-
-        showScreen(el.startScreen);
         el.nameInput.focus();
     }
 
