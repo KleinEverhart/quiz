@@ -97,3 +97,13 @@
     .input-group input { width: 100%; }
     .quiz-top { font-size: 1.7rem; }
 }
+
+/* --- Bảng xếp hạng --- */
+.rank-text { font-size: 1.8rem; font-weight: 700; color: var(--color-teal); margin: 0 0 8px; }
+.board-title { margin: 20px 0 12px; color: var(--color-navy); font-size: 2rem; }
+.leaderboard { list-style: none; counter-reset: rank; padding: 0; margin: 0 auto 24px; max-width: 420px; }
+.leaderboard li { counter-increment: rank; display: flex; gap: 12px; padding: 10px 14px; border-radius: 8px; text-align: left; }
+.leaderboard li::before { content: counter(rank) "."; min-width: 2.4ch; font-weight: 700; color: var(--color-teal); }
+.leaderboard li span { flex: 1; overflow-wrap: anywhere; }
+.leaderboard li:nth-child(odd) { background: var(--color-cream); }
+.leaderboard li.me { outline: 2px solid var(--color-red); }
