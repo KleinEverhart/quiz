@@ -1,7 +1,7 @@
 <<<<<<< HEAD
 =======
 1. GIỚI THIỆU:
-Đây là dự án trang web trả lời trắc nghiệm chủ đề học thuyết hình thái Kinh tế-Xã hội, giúp học sinh hiểu rõ bài học hơn thông qua trả lời các câu hỏi trắc nghiệm.
+Đây là dự án trang web trả lời trắc nghiệm chủ đề học thuyết hình thái Kinh tế-Xã hội, giúp sinh viên hiểu rõ bài học hơn thông qua trả lời các câu hỏi trắc nghiệm.
 2. CÔNG NGHỆ SỬ DỤNG
 _ HTML
 _ CSS
