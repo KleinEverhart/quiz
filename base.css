@@ -1,0 +1,45 @@
+/* base.css – biến toàn cục, reset, tiện ích layout */
+:root {
+    --color-navy: #12103d;
+    --color-teal: #0c5d7b;
+    --color-red: #f20231;
+    --color-gold: #efbf7f;
+    --color-cream: #f8e4cc;
+    --color-text: #333;
+    --color-correct: #2e7d32;
+    --color-surface: #fff;
+
+    --radius: 12px;
+    --shadow: 0 4px 15px rgba(18, 16, 61, .12);
+    --ease: .25s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+    font-size: 62.5%; /* 1rem = 10px */
+    font-family: "Roboto", system-ui, sans-serif;
+}
+
+body {
+    margin: 0;
+    font-size: 1.6rem;
+    line-height: 1.5;
+    background: var(--color-cream);
+    color: var(--color-text);
+}
+
+.grid { width: 1200px; max-width: 100%; margin: 0 auto; }
+.grid__full-width { width: 100%; }
+.grid__row { display: flex; flex-wrap: wrap; }
+
+.visually-hidden {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+:focus-visible { outline: 3px solid var(--color-gold); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
