@@ -344,7 +344,7 @@
 
         el.btnStart.disabled = false;
         el.startInfo.textContent =
-            `${validQuestions.length} câu hỏi · ${CONFIG.timePerQuestion} giây mỗi câu · điểm = số giây còn lại khi trả lời đúng`;
+            `${validQuestions.length} câu hỏi · ${CONFIG.timePerQuestion} giây mỗi câu · chơi ăn gian là tui biết đó nha =))`;
 
         el.btnStart.addEventListener('click', handleStart);
         el.nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleStart(); });
