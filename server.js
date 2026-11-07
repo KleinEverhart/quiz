@@ -25,37 +25,206 @@ app.use(express.static(path.join(__dirname, 'public'), { index: 'quiz.html' }));
 
 /* ---------- Dữ liệu câu hỏi ---------- */
 const RAW_QUESTIONS = [
-    { question: "1.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "2.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "3.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "4.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "5.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "6.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "7.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "8.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "9.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "10.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "11.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "12.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "13.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "14.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "15.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "16.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "17.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "18.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "19.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "20.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "21.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "22.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "23.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "24.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "25.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "26.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "27.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "28.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "29.", answers: ["A.", "B.", "C.", "D."], correct: 0 },
-    { question: "30.", answers: ["A.", "B.", "C.", "D."], correct: 0 }
-    
+    {
+        question: "Theo triết học Mác – Lênin, yếu tố nào đóng vai trò là cơ sở, nền tảng cho sự tồn tại và phát triển của toàn bộ đời sống xã hội loài người?",
+        answers: [
+            "A.Sản xuất tinh thần.",
+            "B.Sản xuất vật chất.",
+            "C.Hoạt động chính trị - xã hội.",
+            "D.Hoạt động khoa học - thực nghiệm"
+        ],
+        correct: 1
+    },
+    {
+        question: "Vì sao triết học Mác - Lênin khẳng định sản xuất vật chất là cơ sở của sự tồn tại và phát triển xã hội?",
+        answers: [
+            "A.Vì sản xuất vật chất tạo ra của cải để nuôi sống con người và là nền tảng cho mọi hoạt động xã hội.",
+            "B.Vì sản xuất vật chất chỉ phục vụ riêng cho nhu cầu kinh tế của các doanh nghiệp.",
+            "C.Vì con người chỉ cần có đời sống tinh thần phong phú là xã hội sẽ tự phát triển.",
+            "D.Vì nhà nước quyết định hoàn toàn mọi sản phẩm làm ra trong đời sống hằng ngày."
+        ],
+        correct: 0
+    },
+    {
+        question: "Yếu tố nào đóng vai trò quyết định trong mối quan hệ biện chứng giữa lực lượng sản xuất và quan hệ sản xuất?",
+        answers: [
+            "A.Quan hệ sản xuất quyết định lực lượng sản xuất.",
+            "B.Lực lượng sản xuất quyết định quan hệ sản xuất.",
+            "C.Quan hệ sản xuất luôn luôn đi trước lực lượng sản xuất.",
+            "D.Hai yếu tố này hoàn toàn độc lập với nhau."
+        ],
+        correct: 1
+    },
+    {
+        question: "Lực lượng sản xuất và quan hệ sản xuất được xây dựng từ nền tảng lý luận nào?",
+        answers: [
+            "A.Lý luận hình thái kinh tế - xã hội",
+            "B.Lý luận giá trị thặng dư",
+            "C.Lý luận đấu tranh giai cấp",
+            "D.Lý luận Nhà nước và cách mạng vô sản"
+        ],
+        correct: 0
+    },
+    {
+        question: "Nhân tố giữ vai trò quyết định trong lực lượng sản xuất là gì?",
+        answers: [
+            "A.Đối tượng lao động",
+            "B.Công cụ lao động ",
+            "C.Người lao động",
+            "D.Phương tiện giao thông"
+        ],
+        correct: 2
+    },
+    {
+        question: "Trình độ phát triển của công cụ lao động là nhân tố quyết định tới yếu tố nào sau đây?",
+        answers: [
+            "A.Hiệu quả sản xuất",
+            "B.Năng suất lao động",
+            "C.Cường độ lao động",
+            "D.Chất lượng sản phẩm"
+        ],
+        correct: 1
+    },
+    {
+        question: "Trong kết cấu của quan hệ sản xuất, quan hệ nào đóng vai trò quyết định trực tiếp đến địa vị kinh tế - xã hội của các tập đoàn người?",
+        answers: [
+            "A.Quan hệ tổ chức và quản lý sản xuất",
+            "B.Quan hệ sở hữu về tư liệu sản xuất",
+            "C.Quan hệ phân phối sản phẩm lao động",
+            "D.Quan hệ trao đổi và lưu thông hàng hóa"
+        ],
+        correct: 1
+    },
+    {
+        question: "Theo Triết học Mác - Lênin, sự biến đổi của quan hệ sản xuất trước hết là do sự biến đổi của yếu tố nào quyết định?",
+        answers: [
+            "A.Ý thức xã hội",
+            "B.Lực lượng sản xuất",
+            "C.Kiến trúc thượng tầng",
+            "D.Cơ sở hạ tầng"
+        ],
+        correct: 1
+    },
+    {
+        question: "Theo triết học Mác - Lênin, Cơ sở hạ tầng là gì?",
+        answers: [
+            "A.Là toàn bộ những quan hệ sản xuất của một xã hội trong sự vận động hiện thực của chúng hợp thành cơ cấu kinh tế của xã hội đó.",
+            "B.Là toàn bộ lực lượng sản xuất và kiến trúc thượng tầng của xã hội trong một giai đoạn lịch sử nhất định.",
+            "C.Là toàn bộ cơ sở vật chất - kỹ thuật, nhà xưởng, đường xá và các công trình kiến trúc của xã hội.",
+            "D.Là toàn bộ các quan hệ chính trị, pháp luật, đạo đức và tôn giáo của một hình thái kinh tế - xã hội. "
+        ],
+        correct: 0
+    },
+    {
+        question: "Theo triết học Mác - Lênin, yếu tố nào dưới đây thuộc về Kiến trúc thượng tầng của một xã hội?",
+        answers: [
+            "A.Tòa tháp Bitexco, Landmark 81 và các chung cư cao tầng.",
+            "B.Hệ thống đường cao tốc Bắc - Nam và các cầu vượt đô thị.",
+            "C.Hệ thống luật pháp, nhà nước, các quan điểm chính trị và giáo lý tôn giáo.",
+            "D.Toàn bộ máy móc, robot AI và công nghệ hiện đại trong các nhà máy."
+        ],
+        correct: 2
+    },
+    {
+        question: "Học thuyết hình thái kinh tế – xã hội nghiên cứu điều gì?",
+        answers: [
+            "A.Các quy luật vận động, phát triển của xã hội.",
+            "B.Các quy luật vận động của giới tự nhiên.",
+            "C.Các quy luật của tư duy con người.",
+            "D. Các hiện tượng tâm lý cá nhân."
+        ],
+        correct: 0
+    },
+    {
+        question: "Hình thái kinh tế – xã hội bao gồm những yếu tố cơ bản nào?",
+        answers: [
+            "A.Kinh tế, chính trị và văn hóa.",
+            "B.Lực lượng sản xuất, quan hệ sản xuất và kiến trúc thượng tầng.",
+            "C.Cơ sở hạ tầng, dân số và lãnh thổ.",
+            "D.Nhà nước, pháp luật và đạo đức."
+        ],
+        correct: 1
+    },
+    {
+        question: "Trong mối quan hệ giữa lực lượng sản xuất và quan hệ sản xuất, yếu tố nào giữ vai trò quyết định?",
+        answers: [
+            "A.Quan hệ sản xuất.",
+            "B.Kiến trúc thượng tầng.",
+            "C.Lực lượng sản xuất.",
+            "D.Ý thức xã hội."
+        ],
+        correct: 2
+    },
+    {
+        question: "14.Theo quan điểm của chủ nghĩa Mác – Lênin, yếu tố giữ vai trò nền tảng đối với sự tồn tại và phát triển của xã hội là gì?",
+        answers: [
+            "A.Sản xuất vật chất.",
+            "B.Tôn giáo",
+            "C.Ý thức cá nhân.",
+            "D.Hoạt động chính trị đơn thuần."
+        ],
+        correct: 0
+    },
+    {
+        question: " Khi lực lượng sản xuất phát triển nhưng quan hệ sản xuất không còn phù hợp, quan hệ sản xuất có thể dẫn đến hậu quả nào?",
+        answers: [
+            "A.Luôn thúc đẩy lực lượng sản xuất phát triển.",
+            "B.Kìm hãm sự phát triển của lực lượng sản xuất.",
+            "C.Làm lực lượng sản xuất không bao giờ thay đổi.",
+            "D.Không gây ra bất kỳ ảnh hưởng nào."
+        ],
+        correct: 0
+    },
+    {
+        question: "Khi vận dụng học thuyết hình thái kinh tế – xã hội vào thực tiễn Việt Nam, cần chú ý điều gì?",
+        answers: [
+            "A.Sao chép nguyên vẹn mô hình phát triển của quốc gia khác",
+            "B.Chỉ dựa vào mong muốn chủ quan",
+            "C.Xuất phát từ điều kiện lịch sử cụ thể của đất nước và tôn trọng các quy luật khách quan.",
+            "D.Không cần quan tâm đến trình độ phát triển của lực lượng sản xuất."
+        ],
+        correct: 2
+    },
+    {
+        question: " Theo quan điểm của chủ nghĩa Mác – Lênin, yếu tố giữ vai trò nền tảng đối với sự tồn tại và phát triển của xã hội là gì?",
+        answers: [
+            "A.Sản xuất vật chất.",
+            "B.Tôn giáo.",
+            "C.Ý thức cá nhân.",
+            "D.Hoạt động chính trị đơn thuần."
+        ],
+        correct: 0
+    },
+    {
+        question: "Quan hệ sản xuất bao gồm những mặt cơ bản nào?",
+        answers: [
+            "A.Sở hữu tư liệu sản xuất, tổ chức và quản lý sản xuất, phân phối sản phẩm lao động.",
+            "B.Sản xuất, trao đổi và tiêu dùng.",
+            "C.Chính trị, pháp luật và đạo đức.",
+            "D.Người lao động, công cụ lao động và đối tượng lao động."
+        ],
+        correct: 0
+    },
+    {
+        question: "Học thuyết hình thái kinh tế – xã hội là học thuyết của ai?",
+        answers: [
+            "A.Hêghen.",
+            "B.Mác và Ph. Ăngghen.",
+            "C.Lênin và Hêghen.",
+            "D.A. Smith."
+        ],
+        correct: 1
+    },
+    {
+        question: "Vì sao không thể chỉ dựa vào ý muốn chủ quan để xây dựng và phát triển xã hội?",
+        answers: [
+            "A.Vì con người không có khả năng tác động đến xã hội.",
+            "B.Vì sự phát triển xã hội chịu sự chi phối của những quy luật khách quan và các điều kiện lịch sử cụ thể thể.",
+            "C.Vì mọi xã hội đều giống nhau.",
+            "D.Vì kinh tế không ảnh hưởng đến sự phát triển xã hội."
+        ],
+        correct: 2
+    }
 ];
 
 /* ---------- Cơ sở dữ liệu ---------- */
