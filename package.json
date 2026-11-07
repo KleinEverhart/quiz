@@ -2,7 +2,7 @@
   "name": "quiz-triet-hoc",
   "version": "1.0.0",
   "private": true,
-  "description": "Website trắc nghiệm học thuyết hình thái Kinh tế - Xã hội (HTML/CSS/JS thuần + Node.js/Express).",
+  "description": "Website trắc nghiệm học thuyết hình thái Kinh tế - Xã hội (HTML/CSS/JS thuần + Node.js/Express + PostgreSQL).",
   "keywords": [
     "quiz",
     "nodejs"
@@ -20,11 +20,16 @@
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon --inspect server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.11.3"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
 }

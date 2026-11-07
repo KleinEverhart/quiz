@@ -14,20 +14,12 @@
     /* ================= API & LƯU TRỮ ================= */
     // Mở trực tiếp file HTML (file://) vẫn gọi được server tại localhost:3000
     const API_BASE = location.protocol === 'file:' ? 'http://localhost:3000' : '';
-    const STORAGE_KEY = 'quiz-attempt-v1';
-
     async function api(path, options = {}) {
         const res = await fetch(API_BASE + path, { headers: { 'Content-Type': 'application/json' }, ...options });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw Object.assign(new Error(data.message || 'Lỗi máy chủ'), { status: res.status });
         return data;
     }
-
-    // Bản lưu cục bộ để khôi phục màn hình kết quả khi tải lại trang
-    const attemptStore = {
-        read() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return null; } },
-        write(data) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* bỏ qua */ } },
-    };
 
     const ANSWER_COUNT = 4;
     const LETTERS = ['A', 'B', 'C', 'D'];
@@ -106,7 +98,7 @@
     /* ================= TRẠNG THÁI ================= */
     let validQuestions = [];
     const state = {
-        playerName: '', session: [], index: 0, score: 0,
+        playerName: '', attemptId: null, session: [], index: 0, score: 0,
         correct: 0, wrong: 0, timedOut: 0,
         locked: false, deadline: 0, timerId: null, nextId: null,
     };
@@ -244,7 +236,8 @@
     }
 
     function renderBoard(data) {
-        el.rankText.textContent = data.rank ? `Xếp hạng của bạn: #${data.rank}/${data.total}` : '';
+        el.rankText.textContent = data.rank
+            ? `Xếp hạng của bạn: #${data.rank}/${data.total} (tính theo điểm cao nhất)` : '';
         el.leaderboard.replaceChildren(...data.leaderboard.map((row) => {
             const li = document.createElement('li');
             const name = document.createElement('span');
@@ -260,27 +253,24 @@
     async function loadBoard() {
         try {
             renderBoard(await api(`/api/leaderboard?name=${encodeURIComponent(state.playerName)}`));
-        } catch { el.saveNote.textContent = 'Không tải được bảng xếp hạng.'; }
+        } catch { /* giữ nguyên thông báo lỗi lưu điểm */ }
     }
 
     async function submitResult(result) {
+        el.rankText.textContent = '';
         el.saveNote.textContent = 'Đang lưu điểm...';
         try {
             const data = await api('/api/score', {
                 method: 'POST',
-                body: JSON.stringify({ name: result.name, score: result.score, correct: result.correct, total: result.total }),
+                body: JSON.stringify({
+                    attemptId: state.attemptId, score: result.score, correct: result.correct, total: result.total,
+                }),
             });
-            attemptStore.write({ ...result, submitted: true });
             el.saveNote.textContent = '';
             renderBoard(data);
-        } catch (err) {
-            if (err.status === 409) { // điểm đã được ghi trước đó
-                attemptStore.write({ ...result, submitted: true });
-                el.saveNote.textContent = '';
-                loadBoard();
-            } else {
-                el.saveNote.textContent = 'Chưa lưu được điểm lên máy chủ. Hãy tải lại trang để thử lại.';
-            }
+        } catch {
+            el.saveNote.textContent = 'Chưa lưu được điểm lên máy chủ.';
+            loadBoard();
         }
     }
 
@@ -288,11 +278,10 @@
         stopTimer();
         const total = state.session.length;
         const result = {
-            status: 'finished', name: state.playerName, score: state.score,
+            name: state.playerName, score: state.score,
             correct: state.correct, wrong: state.wrong, timedOut: state.timedOut,
-            total, accuracy: Math.round((state.correct / total) * 100), submitted: false,
+            total, accuracy: Math.round((state.correct / total) * 100),
         };
-        attemptStore.write(result);
         renderResult(result);
         submitResult(result);
     }
@@ -300,6 +289,17 @@
     function showStartError(msg) {
         el.nameError.textContent = msg;
         el.nameError.hidden = false;
+    }
+
+    // Tạo lượt làm bài mới trên server rồi bắt đầu
+    async function startAttempt(name) {
+        const data = await api('/api/start', { method: 'POST', body: JSON.stringify({ name }) });
+        state.attemptId = data.attemptId;
+        state.playerName = name;
+        el.displayName.textContent = name;
+        el.playerInfo.hidden = false;
+        el.scoreBoard.hidden = false;
+        startQuiz();
     }
 
     async function handleStart() {
@@ -313,47 +313,19 @@
         }
         el.btnStart.disabled = true;
         try {
-            await api('/api/start', { method: 'POST', body: JSON.stringify({ name }) });
-        } catch (err) {
-            showStartError(err.status === 409
-                ? 'Tên này đã làm bài. Mỗi người chỉ được làm một lần.'
-                : 'Không kết nối được máy chủ. Vui lòng thử lại.');
+            await startAttempt(name);
+            el.nameError.hidden = true;
+            el.nameInput.removeAttribute('aria-invalid');
+        } catch {
+            showStartError('Không kết nối được máy chủ. Vui lòng thử lại.');
+        } finally {
             el.btnStart.disabled = false;
-            return;
         }
-        el.nameError.hidden = true;
-        el.nameInput.removeAttribute('aria-invalid');
-        state.playerName = name;
-        el.displayName.textContent = name;
-        el.playerInfo.hidden = false;
-        el.scoreBoard.hidden = false;
-        attemptStore.write({ status: 'started', name });
-        startQuiz();
     }
 
     /* ================= KHỞI TẠO ================= */
     async function init() {
         applyUrlOverrides();
-
-        const saved = attemptStore.read();
-        if (saved && (saved.status === 'finished' || saved.status === 'started')) {
-            state.playerName = saved.name || '';
-            el.displayName.textContent = state.playerName;
-            el.playerInfo.hidden = false;
-            if (saved.status === 'finished') {
-                el.score.textContent = saved.score;
-                el.scoreBoard.hidden = false;
-                renderResult(saved);
-                saved.submitted ? loadBoard() : submitResult(saved);
-            } else {
-                el.nameInput.value = state.playerName;
-                el.nameInput.disabled = el.btnStart.disabled = true;
-                showStartError('Bạn đã bắt đầu bài thi trước đó. Mỗi người chỉ được làm một lần.');
-                showScreen(el.startScreen);
-            }
-            return;
-        }
-
         showScreen(el.startScreen);
         el.btnStart.disabled = true;
         el.startInfo.textContent = 'Đang tải câu hỏi...';
@@ -372,7 +344,7 @@
 
         el.btnStart.disabled = false;
         el.startInfo.textContent =
-            `${validQuestions.length} câu hỏi · ${CONFIG.timePerQuestion} giây mỗi câu · điểm = số giây còn lại khi trả lời đúng · chỉ làm một lần`;
+            `${validQuestions.length} câu hỏi · ${CONFIG.timePerQuestion} giây mỗi câu · điểm = số giây còn lại khi trả lời đúng`;
 
         el.btnStart.addEventListener('click', handleStart);
         el.nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleStart(); });

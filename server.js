@@ -1,12 +1,23 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
+const os = require('os');
+const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data.json');
 const TIME_PER_QUESTION = 15; // giây/câu – do server quyết định, client không tự đổi được
+
+if (!process.env.DATABASE_URL) {
+    console.error('Thiếu DATABASE_URL. Hãy tạo file .env (xem .env.example).');
+    process.exit(1);
+}
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : undefined, // bật khi dùng DB cloud
+});
+pool.on('error', (e) => console.error('Lỗi kết nối PostgreSQL:', e.message));
 
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));
@@ -47,69 +58,90 @@ const RAW_QUESTIONS = [
     
 ];
 
-/* ---------- Lưu lượt làm bài (file JSON, còn nguyên sau khi restart) ---------- */
-// attempts[tên_viết_thường] = { name, finished, startedAt, finishedAt, score, correct, total, accuracy }
-const attempts = (() => {
-    let saved = {};
-    try { saved = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch { /* chưa có file */ }
-    return Object.assign(Object.create(null), saved); // không có prototype: an toàn với tên 'constructor', '__proto__'
-})();
-const save = () => {
-    try { fs.writeFileSync(DATA_FILE, JSON.stringify(attempts, null, 2)); } catch (e) { console.error(e); }
-};
+/* ---------- Cơ sở dữ liệu ---------- */
+// Mỗi lần bấm "Bắt đầu"/"Chơi lại" là một dòng mới (một lượt làm bài), có thể làm nhiều lần.
+const SCHEMA = `
+CREATE TABLE IF NOT EXISTS quiz_attempts (
+    id          SERIAL PRIMARY KEY,
+    name_key    TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    finished    BOOLEAN NOT NULL DEFAULT FALSE,
+    started_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    finished_at TIMESTAMPTZ,
+    score       INTEGER,
+    correct     INTEGER,
+    total       INTEGER,
+    accuracy    INTEGER
+);
+CREATE INDEX IF NOT EXISTS quiz_attempts_best_idx ON quiz_attempts (name_key, score DESC, finished_at) WHERE finished;`;
+
+// Mỗi người (không phân biệt hoa thường) chỉ được tính điểm CAO NHẤT trên bảng xếp hạng
+const BEST = `SELECT DISTINCT ON (name_key) name_key, name, score, accuracy, finished_at
+              FROM quiz_attempts WHERE finished ORDER BY name_key, score DESC, finished_at ASC`;
 
 const cleanName = (v) => (typeof v === 'string' ? v.trim().replace(/\s+/g, ' ') : '');
 const keyOf = (name) => name.toLowerCase();
 const isInt = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
+const wrap = (fn) => (req, res, next) => fn(req, res).catch(next); // chuyển lỗi async về error handler
 
-function getBoard(name) {
-    const ranked = Object.values(attempts)
-        .filter((a) => a.finished)
-        .sort((a, b) => b.score - a.score || a.finishedAt.localeCompare(b.finishedAt));
-    const idx = name ? ranked.findIndex((a) => keyOf(a.name) === keyOf(name)) : -1;
-    return {
-        leaderboard: ranked.slice(0, 10).map(({ name, score, accuracy }) => ({ name, score, accuracy })),
-        rank: idx >= 0 ? idx + 1 : null,
-        total: ranked.length,
-    };
+async function getBoard(name) {
+    const [top, total, me] = await Promise.all([
+        pool.query(`WITH best AS (${BEST}) SELECT name, score, accuracy FROM best ORDER BY score DESC, finished_at ASC LIMIT 10`),
+        pool.query(`WITH best AS (${BEST}) SELECT COUNT(*)::int AS n FROM best`),
+        name
+            ? pool.query(`WITH best AS (${BEST})
+                          SELECT rank FROM (SELECT name_key, ROW_NUMBER() OVER (ORDER BY score DESC, finished_at ASC)::int AS rank FROM best) r
+                          WHERE name_key = $1`, [keyOf(name)])
+            : { rows: [] },
+    ]);
+    return { leaderboard: top.rows, rank: me.rows[0]?.rank ?? null, total: total.rows[0].n };
 }
 
 /* ---------- API ---------- */
 app.get('/api/questions', (req, res) =>
     res.json({ timePerQuestion: TIME_PER_QUESTION, questions: RAW_QUESTIONS }));
 
-// Đăng ký lượt làm bài: mỗi tên chỉ được một lần (không phân biệt hoa thường)
-app.post('/api/start', (req, res) => {
+// Bắt đầu một lượt làm bài mới, trả về attemptId để nộp điểm
+app.post('/api/start', wrap(async (req, res) => {
     const name = cleanName(req.body.name);
     if (!name || name.length > 30) return res.status(400).json({ message: 'Tên không hợp lệ' });
-    if (attempts[keyOf(name)]) return res.status(409).json({ message: 'Tên này đã làm bài' });
-    attempts[keyOf(name)] = { name, finished: false, startedAt: new Date().toISOString() };
-    save();
-    res.status(201).json({ message: 'OK' });
-});
+    const r = await pool.query('INSERT INTO quiz_attempts (name_key, name) VALUES ($1, $2) RETURNING id', [keyOf(name), name]);
+    res.status(201).json({ attemptId: r.rows[0].id });
+}));
 
-app.post('/api/score', (req, res) => {
-    const name = cleanName(req.body.name);
-    const { score, correct, total } = req.body;
-    const attempt = attempts[keyOf(name)];
-
-    if (!attempt) return res.status(400).json({ message: 'Chưa bắt đầu bài thi' });
-    if (attempt.finished) return res.status(409).json({ message: 'Điểm đã được ghi nhận' });
-    if (!isInt(total, 1, RAW_QUESTIONS.length) || !isInt(correct, 0, total) ||
+// Nộp điểm cho một lượt (mỗi attemptId chỉ nộp được một lần)
+app.post('/api/score', wrap(async (req, res) => {
+    const { attemptId, score, correct, total } = req.body;
+    if (!isInt(attemptId, 1, 2147483647) || !isInt(total, 1, RAW_QUESTIONS.length) || !isInt(correct, 0, total) ||
         !isInt(score, 0, correct * TIME_PER_QUESTION)) { // mỗi câu đúng tối đa TIME_PER_QUESTION điểm
         return res.status(400).json({ message: 'Dữ liệu không hợp lệ' });
     }
+    const r = await pool.query(
+        `UPDATE quiz_attempts SET finished = TRUE, finished_at = now(), score = $2, correct = $3, total = $4, accuracy = $5
+         WHERE id = $1 AND NOT finished RETURNING name`,
+        [attemptId, score, correct, total, Math.round((correct / total) * 100)]);
+    if (r.rowCount === 0) return res.status(409).json({ message: 'Lượt làm bài không hợp lệ hoặc đã được nộp' });
+    res.json(await getBoard(r.rows[0].name));
+}));
 
-    Object.assign(attempt, {
-        finished: true, finishedAt: new Date().toISOString(),
-        score, correct, total, accuracy: Math.round((correct / total) * 100),
-    });
-    save();
-    res.json(getBoard(name));
+app.get('/api/leaderboard', wrap(async (req, res) => res.json(await getBoard(cleanName(req.query.name)))));
+
+app.use((err, req, res, next) => {
+    if (err.type === 'entity.parse.failed' || err.type === 'entity.too.large') {
+        return res.status(400).json({ message: 'Dữ liệu không hợp lệ' });
+    }
+    console.error(err);
+    res.status(500).json({ message: 'Lỗi máy chủ' });
 });
 
-app.get('/api/leaderboard', (req, res) => res.json(getBoard(cleanName(req.query.name))));
-
-app.use((err, req, res, next) => res.status(400).json({ message: 'Dữ liệu không hợp lệ' }));
-
-app.listen(PORT, () => console.log(`Server chạy tại http://localhost:${PORT}`));
+/* ---------- Khởi động ---------- */
+pool.query(SCHEMA)
+    .then(() => app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Máy này:      http://localhost:${PORT}`);
+        for (const list of Object.values(os.networkInterfaces())) {
+            for (const i of list) {
+                if (i.family === 'IPv4' && !i.internal) console.log(`Máy khác (LAN): http://${i.address}:${PORT}`);
+            }
+        }
+    }))
+    .catch((e) => { console.error('Không kết nối được PostgreSQL:', e.message); process.exit(1); });
