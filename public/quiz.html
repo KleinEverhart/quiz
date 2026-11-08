@@ -15,7 +15,6 @@
     <link rel="stylesheet" href="quiz.css">
 </head>
 
-
 <body>
     <div class="main">
         <header class="header">
@@ -30,8 +29,21 @@
         </header>
 
         <main class="container grid">
+            <!-- 0. Màn hình luật chơi -->
+            <section id="rules-screen" class="screen" aria-labelledby="rules-title">
+                <h1 id="rules-title" class="title">Luật chơi</h1>
+                <!-- TODO: thay các dòng <li> bên dưới bằng nội dung luật chơi của bạn (thêm/bớt tùy ý) -->
+                <ol class="rules-list">
+                    <li></li>
+                    <li></li>
+                    <li></li>
+                    <li></li>
+                </ol>
+                <button type="button" id="btn-rules-continue" class="btn">Tôi đã hiểu, tiếp tục</button>
+            </section>
+
             <!-- 1. Màn hình bắt đầu -->
-            <section id="start-screen" class="screen" aria-labelledby="start-title">
+            <section id="start-screen" class="screen" aria-labelledby="start-title" hidden>
                 <h1 id="start-title" class="title">Mini game zui zẻ</h1>
                 <p id="start-info" class="muted"></p>
                 <div class="input-group">
@@ -95,7 +107,7 @@
                 <p id="save-note" class="muted" role="status"></p>
                 <h3 class="board-title">Bảng xếp hạng</h3>
                 <ol id="leaderboard" class="leaderboard" aria-label="Bảng xếp hạng"></ol>
-
+                
             </section>
         </main>
 

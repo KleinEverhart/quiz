@@ -107,3 +107,10 @@
 .leaderboard li span { flex: 1; overflow-wrap: anywhere; }
 .leaderboard li:nth-child(odd) { background: var(--color-cream); }
 .leaderboard li.me { outline: 2px solid var(--color-red); }
+
+
+/* --- Màn hình luật chơi --- */
+.rules-list { text-align: left; font-size: 1.8rem; line-height: 1.7; margin: 0 auto 32px; padding-left: 2.6rem; max-width: 640px; color: var(--color-navy); }
+.rules-list li { margin-bottom: 12px; padding-left: 6px; }
+.rules-list li::marker { color: var(--color-red); font-weight: 700; }
+@media (max-width: 560px) { .rules-list { font-size: 1.6rem; } }

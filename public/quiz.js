@@ -76,6 +76,7 @@
 
     /* ================= DOM ================= */
     const el = {
+        rulesScreen: $('rules-screen'), btnRulesContinue: $('btn-rules-continue'),
         startScreen: $('start-screen'), quizScreen: $('quiz-screen'), resultScreen: $('result-screen'),
         startInfo: $('start-info'), nameInput: $('player-name'), nameError: $('name-error'),
         btnStart: $('btn-start'),
@@ -92,7 +93,7 @@
     };
 
     function showScreen(screen) {
-        [el.startScreen, el.quizScreen, el.resultScreen].forEach((s) => { s.hidden = s !== screen; });
+        [el.rulesScreen, el.startScreen, el.quizScreen, el.resultScreen].forEach((s) => { s.hidden = s !== screen; });
     }
 
     /* ================= TRẠNG THÁI ================= */
@@ -326,7 +327,11 @@
     /* ================= KHỞI TẠO ================= */
     async function init() {
         applyUrlOverrides();
-        showScreen(el.startScreen);
+        showScreen(el.rulesScreen); // luật chơi hiện trước, câu hỏi tải ngầm bên dưới
+        el.btnRulesContinue.addEventListener('click', () => {
+            showScreen(el.startScreen);
+            if (!el.nameInput.disabled) el.nameInput.focus();
+        });
         el.btnStart.disabled = true;
         el.startInfo.textContent = 'Đang tải câu hỏi...';
         try {
@@ -344,7 +349,7 @@
 
         el.btnStart.disabled = false;
         el.startInfo.textContent =
-            `${validQuestions.length} câu hỏi · ${CONFIG.timePerQuestion} giây mỗi câu · chơi ăn gian là tui biết đó nha =))`;
+            `${validQuestions.length} câu hỏi · ${CONFIG.timePerQuestion} giây mỗi câu`;
 
         el.btnStart.addEventListener('click', handleStart);
         el.nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleStart(); });
@@ -357,7 +362,6 @@
             const idx = '1234'.includes(e.key) ? '1234'.indexOf(e.key) : 'abcd'.indexOf(e.key.toLowerCase());
             if (idx >= 0) handleAnswer(idx);
         });
-        el.nameInput.focus();
     }
 
     init();
